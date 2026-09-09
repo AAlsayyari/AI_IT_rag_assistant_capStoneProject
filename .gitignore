@@ -1,0 +1,29 @@
+# Environment & secrets
+.env
+.env.local
+*.env
+
+# Python & bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# ChromaDB & Vector Store
+chroma_db/
+
+# Model checkpoints & heavy weights
+Qwen2.5-VL-7B-Instruct/
+models/
+
+# Logs & temp
+*.log
+.pytest_cache/
+.DS_Store
+Thumbs.db

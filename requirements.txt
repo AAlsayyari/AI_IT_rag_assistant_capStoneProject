@@ -1,0 +1,20 @@
+# Arabic RAG Pipeline - Dependencies
+# Install PyTorch with CUDA separately first:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu128
+# Then install the rest:
+#   pip install -r requirements.txt
+
+transformers>=4.45.0
+accelerate>=1.0.0
+qwen-vl-utils
+pymupdf
+pillow
+chromadb
+sentence-transformers
+langchain
+langchain-community
+flask
+langchain-text-splitters
+openai
+python-dotenv
+tenacity
