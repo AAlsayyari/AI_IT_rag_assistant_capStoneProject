@@ -105,6 +105,9 @@ SLOW_VISION_PROMPT = (
     "3. Merge broken lines into continuous sentences. "
     "4. Format steps as clear numbered lists (1. 2. 3.). "
     "5. Preserve tables in standard Markdown format. "
+    "6. CRITICAL FOR EMBEDDED IMAGES/SCREENSHOTS: Never output image tags, URLs, or placeholders like [image-link-here] or ![...]. "
+    "Instead, for any UI screenshot, button, or diagram on the page, transcribe ALL readable text inside it and describe its key functional elements "
+    "inside a markdown block quote like: > **[وصف الواجهة/الصورة]:** (detail the buttons, values, and menus visible).\n"
     "Output ONLY the clean Markdown text.\n"
     "CRITICAL RULE: If the image is a blank page, a decorative cover, or contains no readable text, you MUST return the exact string [EMPTY_PAGE] as your response. Do not apologize, do not invent placeholder titles, and do not explain yourself. Output only [EMPTY_PAGE]."
 )
