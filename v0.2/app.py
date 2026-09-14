@@ -81,7 +81,7 @@ def main():
             put_message_in_chatbot, inputs=[message, chatbot], outputs=[message, chatbot]
         ).then(chat, inputs=chatbot, outputs=[chatbot])
 
-    ui.launch(inbrowser=True, auth=("KSU","RAG"), share=True)
+    ui.launch(inbrowser=True)
 
 
 if __name__ == "__main__":

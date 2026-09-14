@@ -5,6 +5,7 @@ from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.messages import SystemMessage, HumanMessage, convert_to_messages
 from langchain_core.documents import Document
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from dotenv import load_dotenv
 
@@ -20,24 +21,28 @@ embeddings = HuggingFaceEmbeddings(model_name="BAAI/bge-m3")
 RETRIEVAL_K = 10
 
 SYSTEM_PROMPT = """You are an intelligent Level 1 Technical Support Assistant for the Deanship of e-Transactions at King Saud University (KSU).
-Your primary task is to help users and university staff solve technical issues and explain system usage steps concisely.
 
-You must follow these strict rules:
-1. Grounding: ONLY use the information provided in the Context below to answer the question. Do not use outside knowledge.
-2. Fallback: If the Context does not contain the answer, say exactly: "عذراً، لا أملك معلومات حول هذا الموضوع في قاعدة المعرفة الحالية." (Sorry, I don't have information about this in the current knowledge base). Do not guess or hallucinate.
-3. Tone: Keep your answers clear, step-by-step, and concise.
-4. Language: Reply in the exact same language the user used (Arabic, English, or Mixed). If answering in Arabic, keep specific IT technical terms (e.g., 'Router', 'IP Address') in English if they appear that way in the context.
-5. Forbidden Language: You MUST NEVER output Chinese characters. If you are unsure, default to Arabic.
+CRITICAL INSTRUCTIONS:
+1. Permitted Alphabets: You MUST strictly write using ONLY the Arabic alphabet and the English alphabet. You are absolutely prohibited from generating any Asian characters (Chinese, Japanese, Korean, etc.) under any circumstances.
+2. Grounding: If the user asks a technical question, base your answer SOLELY on the Context below.
+3. Small Talk / Greetings: If the user asks general questions like "كيف تخدمني", "مرحبا", or makes small talk, immediately reply with: "أنا خبير الدعم الفني لجامعة الملك سعود. يمكنني مساعدتك في حل المشاكل التقنية واستخدام الأنظمة الإلكترونية. كيف يمكنني مساعدتك اليوم؟"
+4. Fallback: If the Context does not contain the technical answer, reply EXACTLY with: "عذراً، لا أملك معلومات حول هذا الموضوع في قاعدة المعرفة الحالية."
+5. Tone: Keep technical answers step-by-step and concise. Use English for specific IT terms (e.g., 'Router', '2FA').
 
 Context:
 {context}
 
-Before answering, briefly analyze the context and the user's query in English within a <think>...</think> block to ensure accuracy. Then, provide your final response to the user outside the block.
+Answer directly without any introductory filler, translation notes, or internal thinking text.
 """
 
 vectorstore = Chroma(persist_directory=DB_NAME, embedding_function=embeddings)
 retriever = vectorstore.as_retriever()
-llm = ChatOllama(temperature=0, model=MODEL)
+llm = ChatOllama(
+    model=MODEL, 
+    temperature=0, 
+    # Force the model to stop if it tries to hallucinate the next turn
+    stop=["<|im_end|>", "<|im_start|>", "user", "User:", "Human:"] 
+)
 
 
 def fetch_context(question: str) -> list[Document]:
@@ -81,21 +86,30 @@ def rewrite_query(question: str, history: list[dict]) -> str:
     response = llm.invoke([HumanMessage(content=rewrite_prompt)])
     return response.content.strip()
 
+# 1. Define a strict LangChain Chat Template
+qa_prompt = ChatPromptTemplate.from_messages([
+    ("system", SYSTEM_PROMPT),
+    MessagesPlaceholder(variable_name="chat_history"),
+    ("human", "{question}")
+])
+
 def answer_question(question: str, history: list[dict] = []) -> tuple[str, list[Document]]:
-    # Get the contextualized question for Chroma
-    standalone_question = rewrite_query(question, history)
-    
-    # Search the vector database using ONLY the clean, standalone question
+    # Get the context using the rewrite function 
+    standalone_question = rewrite_query(question, history) if history else question
     docs = fetch_context(standalone_question)
     context = "\n\n".join(doc.page_content for doc in docs)
     
-    # Pass the context and the original history to the main system prompt
-    system_prompt = SYSTEM_PROMPT.format(context=context)
-    messages = [SystemMessage(content=system_prompt)]
-    messages.extend(convert_to_messages(history))
+    # Safely convert Gradio's history dictionaries into LangChain message objects
+    langchain_history = convert_to_messages(history)
     
-    # The final LLM call answers the user's original conversational question
-    messages.append(HumanMessage(content=question))
+    # 2. Pipe the formatted prompt directly into the LLM
+    chain = qa_prompt | llm
     
-    response = llm.invoke(messages)
+    # 3. Invoke the chain with our mapped variables
+    response = chain.invoke({
+        "context": context,
+        "chat_history": langchain_history,
+        "question": question
+    })
+    
     return response.content, docs
