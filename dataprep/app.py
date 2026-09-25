@@ -1,9 +1,14 @@
 import os
+import sys
 import subprocess
 import threading
+from pathlib import Path
 from flask import Flask, render_template, jsonify, request
 
 app = Flask(__name__)
+
+# Directory where this app.py and ingest.py live
+APP_DIR = Path(__file__).resolve().parent
 
 # Global state
 process = None
@@ -12,9 +17,15 @@ logs = []
 
 def run_process():
     global process
-    # Run the ingestion script
+    # Prefer conda Python (has all dependencies), fall back to sys.executable
+    python_exe = r"C:\Users\Abdullah\miniconda3\python.exe"
+    if not os.path.exists(python_exe):
+        python_exe = sys.executable
+    
+    # Run the ingestion script using the conda Python interpreter
     proc = subprocess.Popen(
-        ["python", "ingest.py"],
+        [python_exe, "ingest.py"],
+        cwd=str(APP_DIR),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
