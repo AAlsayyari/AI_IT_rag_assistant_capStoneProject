@@ -176,8 +176,25 @@ def main():
 
     theme = gr.themes.Soft(font=["Inter", "system-ui", "sans-serif"])
 
+    # Check Gradio version behavior dynamically using try-except
+    try:
+        gr.Chatbot(type="messages", show_copy_button=True)
+        is_legacy_gradio = True
+    except TypeError:
+        is_legacy_gradio = False
+
+    blocks_kwargs = {"title": "خبير نظم جامعة الملك سعود"}
+    launch_kwargs = {"inbrowser": True}
+    
+    if is_legacy_gradio:
+        blocks_kwargs["theme"] = theme
+        blocks_kwargs["css"] = custom_css
+    else:
+        launch_kwargs["theme"] = theme
+        launch_kwargs["css"] = custom_css
+
     # تمرير theme و css هنا في Blocks مثل v0.2
-    with gr.Blocks(title="خبير نظم جامعة الملك سعود", theme=theme, css=custom_css) as ui:
+    with gr.Blocks(**blocks_kwargs) as ui:
 
         # --- Data Privacy Banner (Section 2) ---
         gr.Markdown(
@@ -193,13 +210,16 @@ def main():
         with gr.Row():
             with gr.Column(scale=1):
                 # استخدام show_copy_button بدلاً من buttons
-                chatbot = gr.Chatbot(
-                    label="", 
-                    height=600, 
-                    show_copy_button=True,
-                    type="messages",
-                    elem_id="bidi-chatbot"
-                )
+                chatbot_kwargs = {
+                    "label": "", 
+                    "height": 600, 
+                    "elem_id": "bidi-chatbot"
+                }
+                if is_legacy_gradio:
+                    chatbot_kwargs["show_copy_button"] = True
+                    chatbot_kwargs["type"] = "messages"
+                    
+                chatbot = gr.Chatbot(**chatbot_kwargs)
                 
                 message = gr.Textbox(
                     label="Your Question",
@@ -228,7 +248,7 @@ def main():
         )
 
     # تشغيل صافي بدون تمرير theme أو css هنا
-    ui.launch(inbrowser=True)
+    ui.launch(**launch_kwargs)
 
 
 if __name__ == "__main__":
