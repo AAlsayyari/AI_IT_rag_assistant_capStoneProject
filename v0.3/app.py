@@ -72,7 +72,7 @@ def chat(history):
 
 
 # ---------------------------------------------------------------------------
-# Session closure pipeline  (Section 3 + 4 + 5 of the v0.3 spec)
+# Session closure pipeline (Section 3 + 4 + 5 of the v0.3 spec)
 # ---------------------------------------------------------------------------
 
 def _clean_history_for_extraction(history: list[dict]) -> list[dict]:
@@ -93,7 +93,6 @@ def _clean_history_for_extraction(history: list[dict]) -> list[dict]:
 def end_session(history, session_start):
     """
     Triggered by the 'End Session' button.
-
     1. Disables the text input (state freeze).
     2. Runs the LLM extraction pipeline.
     3. Executes INSERT / UPSERT operations across the three DB tables.
@@ -171,14 +170,14 @@ def end_session(history, session_start):
 
 def main():
     def put_message_in_chatbot(message, history):
-        # Wrap the user's message in the BiDi div as well
         formatted_message = f'<div dir="auto">\n\n{message}\n\n</div>'
         history.append(gr.ChatMessage(role="user", content=formatted_message))
         return "", history
 
     theme = gr.themes.Soft(font=["Inter", "system-ui", "sans-serif"])
 
-    with gr.Blocks(title="خبير نظم جامعة الملك سعود") as ui:
+    # تمرير theme و css هنا في Blocks مثل v0.2
+    with gr.Blocks(title="خبير نظم جامعة الملك سعود", theme=theme, css=custom_css) as ui:
 
         # --- Data Privacy Banner (Section 2) ---
         gr.Markdown(
@@ -193,11 +192,12 @@ def main():
 
         with gr.Row():
             with gr.Column(scale=1):
-                # 2. Add the elem_id back so the CSS can target it
+                # استخدام show_copy_button بدلاً من buttons
                 chatbot = gr.Chatbot(
-                    label="💬 Conversation", 
+                    label="", 
                     height=600, 
-                    buttons=["copy"],
+                    show_copy_button=True,
+                    type="messages",
                     elem_id="bidi-chatbot"
                 )
                 
@@ -227,7 +227,8 @@ def main():
             outputs=[chatbot, message, end_session_btn, session_start],
         )
 
-    ui.launch(inbrowser=True, theme=theme, css=custom_css)
+    # تشغيل صافي بدون تمرير theme أو css هنا
+    ui.launch(inbrowser=True)
 
 
 if __name__ == "__main__":
