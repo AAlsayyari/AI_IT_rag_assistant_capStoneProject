@@ -4,21 +4,47 @@ from pathlib import Path
 from langchain_community.document_loaders import DirectoryLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
+import os
+from dotenv import load_dotenv
+load_dotenv(override=True)
+# MUST be placed before importing HuggingFace / LangChain modules
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
 
 
-from dotenv import load_dotenv
 
-MODEL = "qwen2.5:14b"
+# BAAI/bge-m3
+# Qwen/Qwen3-Embedding-8B
 
+import torch
+
+Embedding_model = "BAAI/bge-m3"  
 DB_NAME = str(Path(__file__).parent.parent / "vector_db_it")
 KNOWLEDGE_BASE = str(Path(__file__).parent.parent / "KB-IT")
 
-# BAAI/bge-m3
-embeddings = HuggingFaceEmbeddings(model_name="BAAI/bge-m3", model_kwargs={"device": "mps", "local_files_only": True}, encode_kwargs={"normalize_embeddings": True})
+# Auto-detect best available device
+if torch.cuda.is_available():
+    DEVICE = "cuda"
+elif torch.backends.mps.is_available():
+    DEVICE = "mps"
+else:
+    DEVICE = "cpu"
 
-load_dotenv(override=True)
+embeddings = HuggingFaceEmbeddings(model_name=Embedding_model,
+                                    model_kwargs={"device": DEVICE,
+                                                   "local_files_only": True},encode_kwargs={"normalize_embeddings": True})
+
+
+# embeddings = HuggingFaceEmbeddings(
+#     model_name=Embedding_model,
+#     model_kwargs={
+#         "device": "cuda",
+#         "trust_remote_code": True,  # Mandatory for Qwen3 models
+#         "local_files_only": True,
+#     },
+#     encode_kwargs={"normalize_embeddings": True},
+# )
+
 
 # embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
 
@@ -39,7 +65,7 @@ def fetch_documents():
 
 
 def create_chunks(documents):
-    text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=200)
+    text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=150)
     chunks = text_splitter.split_documents(documents)
     return chunks
 
