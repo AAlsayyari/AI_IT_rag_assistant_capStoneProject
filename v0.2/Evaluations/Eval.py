@@ -20,7 +20,7 @@ from implementation.answer import answer_question, fetch_context
 load_dotenv(override=True)
 # qwen2.5:14b
 # gemma2:9b
-JUDGE_MODEL = "gemma2:9b"  # نموذج LLM لتقييم الإجابات
+JUDGE_MODEL = "qwen2.5:14b"  
 EVAL_DIR = Path(__file__).parent
 DATASET_FILE = str(EVAL_DIR / "tests.jsonl")
 MAX_CONCURRENT_TASKS = 2
