@@ -190,4 +190,3 @@ def answer_question(question: str, history: list[dict] = []) -> tuple[str, list[
     response = llm.invoke(messages)
     return response.content, docs
     
-    return response.content, docs
