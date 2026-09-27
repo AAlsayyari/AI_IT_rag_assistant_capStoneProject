@@ -20,7 +20,7 @@ import torch
 
 Embedding_model = "BAAI/bge-m3"  
 DB_NAME = str(Path(__file__).parent.parent / "vector_db_it")
-KNOWLEDGE_BASE = str(Path(__file__).parent.parent / "KB-IT")
+KNOWLEDGE_BASE = str(Path(__file__).parent.parent / "KB-IT-Corrected")
 
 # Auto-detect best available device
 if torch.cuda.is_available():
