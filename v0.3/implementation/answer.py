@@ -116,31 +116,31 @@ def fetch_context(question: str) -> list[Document]:
     return reranked_docs
 
 
-def rewrite_query(question: str, history: list[dict]) -> str:
-    if not history:
-        return question
+# def rewrite_query(question: str, history: list[dict]) -> str:
+#     if not history:
+#         return question
         
-    recent_history = history[-4:] 
-    history_text = "\n".join(f"{msg['role']}: {msg['content']}" for msg in recent_history)
+#     recent_history = history[-4:] 
+#     history_text = "\n".join(f"{msg['role']}: {msg['content']}" for msg in recent_history)
     
-    rewrite_prompt = f"""You are a query rewriting engine for a King Saud University technical support Knowledge Base.
-    Your task is to convert a conversational follow-up question into a fully formed, standalone semantic search query.
+#     rewrite_prompt = f"""You are a query rewriting engine for a King Saud University technical support Knowledge Base.
+#     Your task is to convert a conversational follow-up question into a fully formed, standalone semantic search query.
 
-    Strict Rules:
-    1. Contextualize: Replace pronouns (e.g., "how do I fix it") with the actual subject from the history.
-    2. Format: Write a complete, natural sentence. Do not strip it down to short keywords, as this feeds a dense semantic vector database.
-    3. Language: Keep the query in the exact same language as the user's current question (Arabic or English).
-    4. Guardrails: Do NOT answer the question. Do NOT output  blocks.
-    5. Output ONLY the rewritten query string.
+#     Strict Rules:
+#     1. Contextualize: Replace pronouns (e.g., "how do I fix it") with the actual subject from the history.
+#     2. Format: Write a complete, natural sentence. Do not strip it down to short keywords, as this feeds a dense semantic vector database.
+#     3. Language: Keep the query in the exact same language as the user's current question (Arabic or English).
+#     4. Guardrails: Do NOT answer the question. Do NOT output  blocks.
+#     5. Output ONLY the rewritten query string.
 
-    Conversation History:
-    {history_text}
+#     Conversation History:
+#     {history_text}
     
-    Current Follow-up: {question}
-    Standalone Query:"""
+#     Current Follow-up: {question}
+#     Standalone Query:"""
     
-    response = llm.invoke([HumanMessage(content=rewrite_prompt)])
-    return response.content.strip()
+#     response = llm.invoke([HumanMessage(content=rewrite_prompt)])
+#     return response.content.strip()
 
 
 # 1. Define a strict LangChain Chat Template
@@ -150,27 +150,44 @@ qa_prompt = ChatPromptTemplate.from_messages([
     ("human", "{question}")
 ])
 
+# def answer_question(question: str, history: list[dict] = []) -> tuple[str, list[Document]]:
+#     """
+#     Answer the given question with RAG; return the answer and the context documents.
+#     Uses query rewriting for follow-up questions and reranking for better retrieval.
+#     """
+#     # Rewrite follow-up questions into standalone queries for better retrieval
+#     standalone_question = rewrite_query(question, history) if history else question
+#     docs = fetch_context(standalone_question)
+#     context = "\n\n".join(doc.page_content for doc in docs)
+    
+#     # Safely convert Gradio's history dictionaries into LangChain message objects
+#     langchain_history = convert_to_messages(history)
+    
+#     # Pipe the formatted prompt directly into the LLM
+#     chain = qa_prompt | llm
+    
+#     # Invoke the chain with our mapped variables
+#     response = chain.invoke({
+#         "context": context,
+#         "chat_history": langchain_history,
+#         "question": question
+#     })
+
+
 def answer_question(question: str, history: list[dict] = []) -> tuple[str, list[Document]]:
     """
     Answer the given question with RAG; return the answer and the context documents.
-    Uses query rewriting for follow-up questions and reranking for better retrieval.
     """
-    # Rewrite follow-up questions into standalone queries for better retrieval
-    standalone_question = rewrite_query(question, history) if history else question
-    docs = fetch_context(standalone_question)
+    docs = fetch_context(question)
     context = "\n\n".join(doc.page_content for doc in docs)
     
-    # Safely convert Gradio's history dictionaries into LangChain message objects
-    langchain_history = convert_to_messages(history)
+    system_prompt = SYSTEM_PROMPT.format(context=context)
+    messages = [SystemMessage(content=system_prompt)]
     
-    # Pipe the formatted prompt directly into the LLM
-    chain = qa_prompt | llm
+    messages.extend(convert_to_messages(history))
+    messages.append(HumanMessage(content=question))
     
-    # Invoke the chain with our mapped variables
-    response = chain.invoke({
-        "context": context,
-        "chat_history": langchain_history,
-        "question": question
-    })
+    response = llm.invoke(messages)
+    return response.content, docs
     
     return response.content, docs
